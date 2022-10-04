@@ -1,0 +1,34 @@
+library(DESeq2)
+library(ggplot2)
+library(magrittr)
+deseq_object <- DESeq(dds)
+deseq_results <- results(deseq_object)
+deseq_results <- lfcShrink(
+  deseq_object, # The original DESeq2 object after running DESeq()
+  coef = 2, # The log fold change coefficient used in DESeq(); the default is 2.
+  res = deseq_results # The original DESeq2 results table
+)
+colData <- colData %>%
+    dplyr::mutate(
+        # Here we define the values our factor variable can have and their order.
+        characteristics_ch1 = factor(characteristics_ch1, levels = c("endometriosis", "atypical endometriosis", "adjacent endometriosis to clear cell ovarian carcinoma", "adjacent endometriosis to endometrioid ovarian carcinoma", "clear cell ovarian carcinoma", "endometrioid ovarian carcinoma"))
+
+.
+
+colDataCopy[,9] = factor(colDataCopy[,9], levels = c("endometriosis", "atypical endometriosis", "adjacent endometriosis to clear cell ovarian carcinoma", "adjacent endometriosis to endometrioid ovarian carcinoma", "clear cell ovarian carcinoma", "endometrioid ovarian carcinoma"))
+ddset <- DESeqDataSetFromMatrix(countData = countData, colData = colDataCopy, design = ~characteristics_ch1)
+deseq_object <- DESeq(ddset)
+deseq_results <- lfcShrink(deseq_object, coef = 6, coef = 6, res = deseq_results)
+deseq_df <- deseq_results %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("Gene") %>%
+  dplyr::mutate(threshold = padj < 0.05) %>%
+  dplyr::arrange(dplyr::desc(log2FoldChange))
+volcano_plot <- EnhancedVolcano::EnhancedVolcano(
+  deseq_df,
+  lab = deseq_df$Gene,
+  x = "log2FoldChange",
+  y = "padj",
+  pCutoff = 0.01
+)
+volcano_plot
