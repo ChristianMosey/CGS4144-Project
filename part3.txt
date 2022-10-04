@@ -5,6 +5,7 @@ colDataCopy <- colData
 colDataCopy[,9] = factor(colDataCopy[,9], levels = c("endometriosis", "atypical endometriosis", "adjacent endometriosis to clear cell ovarian carcinoma", "adjacent endometriosis to endometrioid ovarian carcinoma", "clear cell ovarian carcinoma", "endometrioid ovarian carcinoma"))
 ddset <- DESeqDataSetFromMatrix(countData = countData, colData = colDataCopy, design = ~characteristics_ch1)
 deseq_object <- DESeq(ddset)
+deseq_results <- results(deseq_object)
 deseq_results <- lfcShrink(deseq_object, coef = 6, res = deseq_results)
 deseq_df <- deseq_results %>%
   as.data.frame() %>%
