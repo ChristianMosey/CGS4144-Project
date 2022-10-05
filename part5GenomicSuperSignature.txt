@@ -1,0 +1,10 @@
+library(GenomicSuperSignature)
+library(wordcloud)
+sigs <- na.omit(deseq_df)
+sigs <- sigs[sigs$padj < 0.05,]
+count_sig <- countData[sigs[,1],]
+RAVmodel <- getModel("PLIERpriors", load=TRUE)
+val_all <- validate(count_sig, RAVmodel)
+heatmapTable(val_all, RAVmodel, num.out = 5, swCutoff = 0)
+validated_ind <- validatedSignatures(val_all, RAVmodel, num.out = 3, swCutoff = 0, indexOnly = TRUE)
+drawWordcloud(RAVmodel, validated_ind[1]
