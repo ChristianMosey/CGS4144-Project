@@ -1,0 +1,68 @@
+#step1
+library(ggplot2)
+logScaleData <- read.table("C:/Users/Zachary Wang/Downloads/CGS4144_export/assn2/GSE157153_endometriosis_associated.txt", header = TRUE, sep = "\t")
+logScaleData <- logScaleData[,-1]
+min = apply(logScaleData,1,min)
+max = apply(logScaleData,1,max)
+scaleRange = max-min
+a <- as.data.frame(logScaleData)
+densityPlot <- ggplot(a, aes(x=scaleRange)) + geom_density()
+densityPlot 
+#step2
+library("DESeq2")
+countData <- read.table("C:/Users/Zachary Wang/Downloads/CGS4144_export/assn2/GSE157153_endometriosis_associated.txt", header = TRUE, sep = "\t")
+rownames(countData) <- countData[,1]
+countData <- countData[,-1]
+countData <- 2 ^ countData
+colData <- read.table("C:/Users/Zachary Wang/Downloads/CGS4144_export/assn2/GSE157153_series_matrix.txt", header = TRUE, sep = "\t", fill = TRUE)
+colData = t(colData)
+colnames(colData) = colData[1,]
+colData = colData[-1,]
+countData_int <- apply(countData,2,as.integer)
+rownames(countData_int) <- rownames(countData)
+countData <- countData_int
+rm(countData_int)
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~characteristics_ch1)
+dds
+vsd <- vst(dds, blind = FALSE)
+PCAPlot <- plotPCA(vsd, intgroup = "characteristics_ch1")
+PCAPlot 
+library(M3C)
+pcaData <- plotPCA(vsd, intgroup = "characteristics_ch1", returnData = TRUE)
+tsneData <- t(pcaData[,1:2])
+tsnePlot <- tsne(tsneData,labels=as.factor(pcaData$characteristics_ch1),legendtextsize = 5)
+umapPlot <- umap(tsneData,labels=as.factor(pcaData$characteristics_ch1),legendtextsize = 5)
+#step3
+library(DESeq2)
+library(ggplot2)
+library(magrittr)
+colDataCopy <- colData
+colDataCopy[,9] = factor(colDataCopy[,9], levels = c("endometriosis", "atypical endometriosis", "adjacent endometriosis to clear cell ovarian carcinoma", "adjacent endometriosis to endometrioid ovarian carcinoma", "clear cell ovarian carcinoma", "endometrioid ovarian carcinoma"))
+ddset <- DESeqDataSetFromMatrix(countData = countData, colData = colDataCopy, design = ~characteristics_ch1)
+deseq_object <- DESeq(ddset)
+deseq_results <- results(deseq_object)
+deseq_results <- lfcShrink(deseq_object, coef = 6, res = deseq_results)
+deseq_df <- deseq_results %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("Gene") %>%
+  dplyr::mutate(threshold = padj < 0.05) %>%
+  dplyr::arrange(dplyr::desc(log2FoldChange))
+volcano_plot <- EnhancedVolcano::EnhancedVolcano(
+  deseq_df,
+  lab = deseq_df$Gene,
+  x = "log2FoldChange",
+  y = "padj",
+  pCutoff = 0.01
+)
+volcano_plot
+#step5
+library(DOSE)
+library(org.Hs.eg,db)
+library(topGO)
+library(clusterProfiler)
+library(pathview)
+sigs <- na.omit(deseq_df)
+sigs <- sigs[sigs$log2FoldChange > 2,]
+test1 = bitr(sigs$Gene, fromType="SYMBOL", toType=c("ENSEMBL", "ENTREZID"), OrgDb="org.Hs.eg.db")
+ego_ALL <- enrichGO(gene = test1$ENTREZID, universe = names(sigs), OrgDb = org.Hs.eg.db, keytype = 'ENSEMBL', ont = "ALL", pAdjustMethod = "BH", pvalueCutoff = 1, qvalueCutoff = 1, readable = TRUE)
+write.csv(summary(ego_ALL),"ALL-enrich.csv",row.names =FALSE)
