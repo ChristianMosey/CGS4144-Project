@@ -1,0 +1,10 @@
+library(ComplexHeatmap)
+deseq_parsed <- na.omit(deseq_df)
+deseq_parsed <- deseq_parsed[,c(1,3)]
+df <- deseq_parsed[1:5000,]
+df_genes <- df[,1]
+count_t <- countData[df_genes,]
+count <- t(count_t)
+count <- scale(count)
+count <- t(count)
+HeatMap(count)
