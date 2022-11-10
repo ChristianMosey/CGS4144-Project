@@ -1,0 +1,34 @@
+library(cluster)
+library(factoextra)
+library(tidyverse)
+library(dendestend)
+#n is # of genes that you want to extract from countData
+plot_dendrogram_hc <- function(n, countData, deseq_df){
+  #taking n most relevant genes from assignment2
+  deseq_parsed <- na.omit(deseq_df)
+  deseq_parsed <- deseq_parsed[,c(1,3)]
+  df <- deseq_parsed[1:n,]
+  
+  #extract these genes from countData, transpose them
+  df_genes <- df[,1]
+  count_t <- countData[df_genes,]
+  count <- t(count_t)
+  
+  #scale, then run hclust and plot dendrogram
+  count <- scale(count)
+  dcounts <- dist(count, method = "euclidean")
+  hcounts <- hclust(dcounts, method = "complete")
+  plot(hcounts, cex = 0.6, hang = -1, main = paste(paste("Cluster Dendrogram for ", n), "Genes"))
+  return(hcounts)
+}
+hc_10000 <- plot_dendrogram_hc(10000, countData, deseq_df)
+hc_5000 <- plot_dendrogram_hc(5000, countData, deseq_df)
+hc_1000 <- plot_dendrogram_hc(1000, countData, deseq_df)
+hc_100 <- plot_dendrogram_hc(100, countData, deseq_df)
+hc_10 <- plot_dendrogram_hc(10, countData, deseq_df)
+
+clusterFlow <- data.frame(cutree(hc_10, k = 15), cutree(hc_100, k = 15))
+colnames(clusterFlow) <- c('10 genes', '100 genes')
+clusterFlow['1000 genes'] <- cutree(hc_1000, k = 15)
+clusterFlow['5000 genes'] <- cutree(hc_5000, k = 15)
+clusterFlow['10000 genes'] <- cutree(hc_10000, k = 15)
